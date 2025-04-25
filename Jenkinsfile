@@ -7,19 +7,24 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh "docker build -t ${IMAGE} ."
+        // Use 'bat' instead of 'sh' on Windows
+        bat "docker build -t ${IMAGE} ."
       }
     }
 
     stage('Push') {
       steps {
+        // Wrap credentials for Docker login
         withCredentials([usernamePassword(
           credentialsId: 'dockerhub-creds',
           usernameVariable: 'CREDS_USR',
           passwordVariable: 'CREDS_PSW'
         )]) {
-          sh "echo ${CREDS_PSW} | docker login -u ${CREDS_USR} --password-stdin"
-          sh "docker push ${IMAGE}"
+          // Note Windows piping syntax
+          bat """
+            echo %CREDS_PSW% | docker login -u %CREDS_USR% --password-stdin
+            docker push ${IMAGE}
+          """
         }
       }
     }
@@ -27,10 +32,10 @@ pipeline {
 
   post {
     success {
-      echo "✅ Successfully built and pushed ${IMAGE}"
+      echo "✅ Built & pushed ${IMAGE}:latest"
     }
     failure {
-      echo "❌ Build failed — check logs"
+      echo "❌ Pipeline failed—check the logs above."
     }
   }
 }
